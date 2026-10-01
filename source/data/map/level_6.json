@@ -1,0 +1,35 @@
+{
+    "background_type": 1,
+    "init_sun_value": 150,
+    "card_pool": [
+        {"name": "SunFlower"},
+        {"name": "PuffShroom"},
+        {"name": "SunShroom"},
+        {"name": "ScaredyShroom"},
+        {"name": "HypnoShroom"},
+        {"name": "IceShroom"},
+        {"name": "WallNut"},
+        {"name": "Peashooter"},
+        {"name": "CherryBomb"}
+    ],
+    "zombie_list": [
+        {"time": 15000, "map_y": 2, "name": "Zombie"},
+        {"time": 25000, "map_y": 1, "name": "Zombie"},
+        {"time": 35000, "map_y": 3, "name": "ConeheadZombie"},
+        {"time": 45000, "map_y": 0, "name": "Zombie"},
+        {"time": 50000, "map_y": 4, "name": "Zombie"},
+        {"time": 60000, "map_y": 2, "name": "ConeheadZombie"},
+        {"time": 65000, "map_y": 1, "name": "FlagZombie"},
+        {"time": 70000, "map_y": 3, "name": "Zombie"},
+        {"time": 75000, "map_y": 0, "name": "ConeheadZombie"},
+        {"time": 80000, "map_y": 4, "name": "BucketheadZombie"},
+        {"time": 85000, "map_y": 2, "name": "Zombie"},
+        {"time": 90000, "map_y": 1, "name": "BucketheadZombie"},
+        {"time": 95000, "map_y": 3, "name": "FlagZombie"},
+        {"time": 100000, "map_y": 0, "name": "ConeheadZombie"},
+        {"time": 105000, "map_y": 4, "name": "Zombie"},
+        {"time": 110000, "map_y": 2, "name": "BucketheadZombie"},
+        {"time": 115000, "map_y": 1, "name": "FlagZombie"},
+        {"time": 120000, "map_y": 3, "name": "BucketheadZombie"}
+    ]
+}

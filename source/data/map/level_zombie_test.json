@@ -1,0 +1,12 @@
+{
+    "background_type": 0,
+    "init_sun_value": 500,
+    "card_pool": [0, 1, 2, 3, 19, 20, 21],
+    "zombie_list": [
+        {"time": 20000, "map_y": 0, "name": "Zombie"},
+        {"time": 30000, "map_y": 2, "name": "ConeheadZombie"},
+        {"time": 40000, "map_y": 4, "name": "BucketheadZombie"},
+        {"time": 50000, "map_y": 1, "name": "Zombie"},
+        {"time": 60000, "map_y": 3, "name": "ConeheadZombie"}
+    ]
+}
