@@ -2,11 +2,13 @@ __author__ = 'marble_xu'
 
 from . import tool
 from . import constants as c
-from .state import mainmenu, screen, level
+from .state import mainmenu, screen, level, levelselect
 
 def main():
+    tool.init()
     game = tool.Control()
     state_dict = {c.MAIN_MENU: mainmenu.Menu(),
+                  c.LEVEL_SELECT: levelselect.LevelSelect(),
                   c.GAME_VICTORY: screen.GameVictoryScreen(),
                   c.GAME_LOSE: screen.GameLoseScreen(),
                   c.LEVEL: level.Level()}

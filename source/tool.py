@@ -3,8 +3,19 @@ __author__ = 'marble_xu'
 import os
 import json
 from abc import abstractmethod
+from pathlib import Path
 import pygame as pg
 from . import constants as c
+
+# tool.py 中定义的模块级资源变量；调用 init() 之前保持为空/None，
+# 不会在 import 时触发任何 pygame 副作用，方便单元测试。
+GFX: dict = {}
+ZOMBIE_RECT: dict = {}
+PLANT_RECT: dict = {}
+MUSIC: dict = {}
+SCREEN = None
+music_manager = None
+
 
 class State():
     def __init__(self):
@@ -23,7 +34,7 @@ class State():
         return self.persist
     
     @abstractmethod
-    def update(self, surface, keys, current_time):
+    def update(self, surface, current_time, mouse_pos, mouse_click):
         '''abstract method'''
 
 class Control():
@@ -69,12 +80,19 @@ class Control():
                 self.done = True
             elif event.type == pg.KEYDOWN:
                 self.keys = pg.key.get_pressed()
+                # Handle ESC key for pause
+                if event.key == pg.K_ESCAPE:
+                    if hasattr(self.state, 'paused') and hasattr(self.state, 'input_handler'):
+                        if self.state.state == c.PLAY:  # Only pause during play state
+                            if self.state.paused:
+                                self.state.input_handler.resumeGame()
+                            else:
+                                self.state.input_handler.pauseGame()
             elif event.type == pg.KEYUP:
                 self.keys = pg.key.get_pressed()
             elif event.type == pg.MOUSEBUTTONDOWN:
                 self.mouse_pos = pg.mouse.get_pos()
                 self.mouse_click[0], _, self.mouse_click[1] = pg.mouse.get_pressed()
-                print('pos:', self.mouse_pos, ' mouse:', self.mouse_click)
 
     def main(self):
         while not self.done:
@@ -154,23 +172,157 @@ def load_all_gfx(directory, colorkey=c.WHITE, accept=('.png', '.jpg', '.bmp', '.
     return graphics
 
 def loadZombieImageRect():
-    file_path = os.path.join('source', 'data', 'entity', 'zombie.json')
-    f = open(file_path)
-    data = json.load(f)
-    f.close()
-    return data[c.ZOMBIE_IMAGE_RECT]
+    """Load zombie image rectangle data from JSON file with error handling."""
+    file_path = Path(__file__).parent / 'data' / 'entity' / 'zombie.json'
+    try:
+        with open(file_path, 'r', encoding='utf-8') as f:
+            data = json.load(f)
+            return data[c.ZOMBIE_IMAGE_RECT]
+    except FileNotFoundError:
+        print(f"Error: Zombie data file not found at {file_path}")
+        return {}
+    except json.JSONDecodeError as e:
+        print(f"Error: Invalid JSON in zombie data file: {e}")
+        return {}
+    except KeyError:
+        print(f"Error: Missing '{c.ZOMBIE_IMAGE_RECT}' key in zombie data")
+        return {}
 
 def loadPlantImageRect():
-    file_path = os.path.join('source', 'data', 'entity', 'plant.json')
-    f = open(file_path)
-    data = json.load(f)
-    f.close()
-    return data[c.PLANT_IMAGE_RECT]
+    """Load plant image rectangle data from JSON file with error handling."""
+    file_path = Path(__file__).parent / 'data' / 'entity' / 'plant.json'
+    try:
+        with open(file_path, 'r', encoding='utf-8') as f:
+            data = json.load(f)
+            return data[c.PLANT_IMAGE_RECT]
+    except FileNotFoundError:
+        print(f"Error: Plant data file not found at {file_path}")
+        return {}
+    except json.JSONDecodeError as e:
+        print(f"Error: Invalid JSON in plant data file: {e}")
+        return {}
+    except KeyError:
+        print(f"Error: Missing '{c.PLANT_IMAGE_RECT}' key in plant data")
+        return {}
 
-pg.init()
-pg.display.set_caption(c.ORIGINAL_CAPTION)
-SCREEN = pg.display.set_mode(c.SCREEN_SIZE)
+def load_music(directory, accept=('.wav', '.mp3', '.ogg', '.midi', '.m4a')):
+    """Load all music files from the specified directory."""
+    music = {}
+    if not os.path.exists(directory):
+        print(f"Warning: Music directory '{directory}' not found")
+        return music
+    
+    for filename in os.listdir(directory):
+        name, ext = os.path.splitext(filename)
+        if ext.lower() in accept:
+            music[name] = os.path.join(directory, filename)
+    return music
 
-GFX = load_all_gfx(os.path.join("resources","graphics"))
-ZOMBIE_RECT = loadZombieImageRect()
-PLANT_RECT = loadPlantImageRect()
+class MusicManager:
+    """Manages background music playback."""
+    def __init__(self):
+        self.music_dict = {}
+        self.current_music = None
+        self.volume = c.MUSIC_VOLUME
+        pg.mixer.music.set_volume(self.volume)
+        self._converted_cache = {}  # Cache converted files
+    
+    def load_music_files(self, music_dict):
+        """Load music file paths and pre-convert m4a files if needed."""
+        self.music_dict = music_dict
+        
+        # Pre-convert m4a files
+        for name, path in music_dict.items():
+            if path.lower().endswith('.m4a'):
+                print(f"Pre-converting {name}.m4a to ogg format...")
+                converted = self._convert_m4a_to_ogg(path)
+                if converted:
+                    self._converted_cache[name] = converted
+                    print(f"Conversion complete for {name}")
+    
+    def _convert_m4a_to_ogg(self, m4a_path):
+        """Convert m4a file to ogg file using pydub."""
+        try:
+            from pydub import AudioSegment
+            
+            # Create output path in same directory
+            base_path = os.path.splitext(m4a_path)[0]
+            ogg_path = base_path + '_converted.ogg'
+            
+            # Skip if already converted
+            if os.path.exists(ogg_path):
+                print(f"Using existing converted file: {ogg_path}")
+                return ogg_path
+            
+            # Convert m4a to ogg
+            audio = AudioSegment.from_file(m4a_path, format='m4a')
+            audio.export(ogg_path, format='ogg')
+            
+            return ogg_path
+        except ImportError:
+            print(f"Error: pydub not installed. Install with: pip install pydub")
+            print(f"Also ensure ffmpeg is installed on your system.")
+            return None
+        except Exception as e:
+            print(f"Error converting m4a to ogg: {e}")
+            return None
+    
+    def play_music(self, music_name, loops=-1):
+        """Play background music. loops=-1 means infinite loop."""
+        if music_name == self.current_music:
+            return
+        
+        if music_name not in self.music_dict:
+            print(f"Warning: Music '{music_name}' not found")
+            return
+        
+        # Use converted file if available
+        if music_name in self._converted_cache:
+            music_path = self._converted_cache[music_name]
+        else:
+            music_path = self.music_dict[music_name]
+        
+        try:
+            pg.mixer.music.load(music_path)
+            pg.mixer.music.play(loops)
+            self.current_music = music_name
+        except Exception as e:
+            print(f"Error playing music '{music_name}': {e}")
+    
+    def stop_music(self):
+        """Stop the currently playing music."""
+        pg.mixer.music.stop()
+        self.current_music = None
+    
+    def pause_music(self):
+        """Pause the currently playing music."""
+        pg.mixer.music.pause()
+    
+    def unpause_music(self):
+        """Resume the paused music."""
+        pg.mixer.music.unpause()
+    
+    def set_volume(self, volume):
+        """Set music volume (0.0 to 1.0)."""
+        self.volume = max(0.0, min(1.0, volume))
+        pg.mixer.music.set_volume(self.volume)
+
+def init():
+    """显式初始化函数：启动 pygame、创建显示窗口并加载所有资源。
+    必须在创建 Control 实例之前调用一次；不在模块导入时执行，
+    使单元测试可以安全地 import tool 而无需真实的显示环境。
+    """
+    global GFX, ZOMBIE_RECT, PLANT_RECT, MUSIC, SCREEN, music_manager
+
+    pg.init()
+    pg.mixer.init()
+    pg.display.set_caption(c.ORIGINAL_CAPTION)
+    SCREEN = pg.display.set_mode(c.SCREEN_SIZE)
+
+    _res = Path(__file__).parent.parent / 'resources'
+    GFX = load_all_gfx(str(_res / 'graphics'))
+    ZOMBIE_RECT = loadZombieImageRect()
+    PLANT_RECT = loadPlantImageRect()
+    MUSIC = load_music(str(_res / 'music'))
+    music_manager = MusicManager()
+    music_manager.load_music_files(MUSIC)

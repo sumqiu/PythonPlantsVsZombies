@@ -17,11 +17,18 @@ class Screen(tool.State):
         name = self.getImageName()
         self.setupImage(name)
         self.next = self.set_next_state()
+        
+        # Play screen music
+        self.playMusic()
     
     def getImageName(self):
         pass
 
     def set_next_state(self):
+        pass
+    
+    def playMusic(self):
+        """Override in subclasses to play specific music."""
         pass
 
     def setupImage(self, name):
@@ -46,14 +53,29 @@ class GameVictoryScreen(Screen):
         return c.GAME_VICTORY_IMAGE
     
     def set_next_state(self):
+        # 如果是从关卡选择进入的，返回关卡选择界面
+        if self.game_info.get('from_level_select', False):
+            return c.LEVEL_SELECT
+        # 已经打穿最后一关，没有 level_N.json 可进，回主菜单
+        if self.game_info[c.LEVEL_NUM] >= c.LEVEL_COUNT:
+            return c.MAIN_MENU
         return c.LEVEL
+    
+    def playMusic(self):
+        tool.music_manager.play_music(c.MUSIC_VICTORY, loops=0)
 
 class GameLoseScreen(Screen):
     def __init__(self):
         Screen.__init__(self)
     
     def getImageName(self):
-        return c.GAME_LOOSE_IMAGE
+        return c.GAME_LOSE_IMAGE
     
     def set_next_state(self):
+        # 如果是从关卡选择进入的，返回关卡选择界面
+        if self.game_info.get('from_level_select', False):
+            return c.LEVEL_SELECT
         return c.MAIN_MENU
+    
+    def playMusic(self):
+        tool.music_manager.play_music(c.MUSIC_LOSE, loops=0)
