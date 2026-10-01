@@ -1,0 +1,19 @@
+# Python
+__pycache__/
+*.py[cod]
+*.egg-info/
+.pytest_cache/
+
+# 虚拟环境
+.venv/
+venv/
+ENV/
+
+# 运行期自动生成：tool.MusicManager 把 .m4a 转出的 ogg 缓存
+resources/music/*_converted.ogg
+
+# 编辑器 / 系统
+.idea/
+.vscode/
+.DS_Store
+Thumbs.db
